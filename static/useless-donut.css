@@ -220,7 +220,8 @@ pre.donut {
   display: flex; gap: 12px;
   padding: 9px 12px;
   border: 1px solid var(--hair);
-  border-radius: 999px; background: #fff;
+  border-radius: 999px;
+  background: transparent;
 }
 .swatch {
   width: 22px; height: 22px; border-radius: 50%;
@@ -236,6 +237,24 @@ pre.donut {
 .swatch .fill {
   position: absolute; inset: 0; border-radius: 50%;
   background: var(--c);
+}
+.swatch-cycle .fill {
+  background: conic-gradient(
+    hsl(0 85% 52%),
+    hsl(72 85% 50%),
+    hsl(144 80% 46%),
+    hsl(216 85% 52%),
+    hsl(288 85% 52%),
+    hsl(0 85% 52%)
+  );
+}
+.swatch-cycle[aria-pressed="true"]::after {
+  border-style: dashed;
+}
+
+/* disco: hide color bar row (JS also sets class for clarity) */
+body.disco .panel > .row.color-row {
+  display: none;
 }
 
 /* slider */
@@ -256,13 +275,13 @@ input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
   width: 14px; height: 14px; border-radius: 50%;
   background: var(--ink); cursor: pointer;
-  border: 3px solid #fff;
+  border: 3px solid var(--bg);
   box-shadow: 0 0 0 1px var(--ink);
 }
 input[type="range"]::-moz-range-thumb {
   width: 14px; height: 14px; border-radius: 50%;
   background: var(--ink); cursor: pointer;
-  border: 3px solid #fff;
+  border: 3px solid var(--bg);
   box-shadow: 0 0 0 1px var(--ink);
 }
 .slider-val {
@@ -279,10 +298,13 @@ input[type="range"]::-moz-range-thumb {
   padding: 20px 20px;
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   transition: border-color .2s ease, background-color .2s ease;
-  background: #fff;
+  background: transparent;
   cursor: pointer;
 }
-.dropzone.drag { border-color: var(--donut); background: #fffbf0; }
+.dropzone.drag {
+  border-color: var(--donut);
+  background: color-mix(in srgb, var(--donut) 12%, transparent);
+}
 .dropzone .headline {
   font-size: 12px; color: var(--ink);
   letter-spacing: 0.05em;
@@ -293,18 +315,45 @@ input[type="range"]::-moz-range-thumb {
 }
 .dropzone input { display: none; }
 
+/* demo tunes */
+.demos {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 6px; width: 100%;
+}
+.demos-label {
+  font-size: 10px; color: var(--muted);
+  letter-spacing: 0.18em; text-transform: uppercase;
+  margin-right: 2px;
+}
+.demo-btn {
+  font-family: inherit;
+  font-size: 11px; color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--hair);
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease, color .15s ease;
+}
+.demo-btn:hover { border-color: var(--ink); }
+.demo-btn[aria-pressed="true"] {
+  background: var(--ink); color: var(--bg); border-color: var(--ink);
+}
+
 /* transport */
 .transport {
   display: flex; align-items: center; gap: 14px; width: 100%;
 }
 .playbtn {
   width: 34px; height: 34px; border-radius: 50%;
-  border: 1px solid var(--ink); background: #fff; color: var(--ink);
+  border: 1px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   padding: 0;
   transition: background-color .15s ease, color .15s ease;
 }
-.playbtn:hover { background: var(--ink); color: #fff; }
+.playbtn:hover { background: var(--ink); color: var(--bg); }
 .playbtn svg { width: 12px; height: 12px; }
 .trackname {
   flex: 1;
@@ -350,10 +399,21 @@ input[type="range"]::-moz-range-thumb {
 
 footer {
   width: 100%; max-width: 1100px;
-  display: flex; justify-content: space-between;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px;
+  justify-content: space-between;
   color: var(--muted); font-size: 11px;
   letter-spacing: 0.12em; text-transform: uppercase;
   margin-top: 32px;
+}
+footer a {
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--muted) 45%, transparent);
+  transition: color .15s ease, border-color .15s ease;
+}
+footer a:hover {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
 }
 
 /* ---------- Tweaks panel ---------- */

@@ -51,7 +51,7 @@
     <div class="panel">
 
       <!-- color swatches -->
-      <div class="row">
+      <div class="row color-row">
         <div class="label">color</div>
         <div class="swatches" role="radiogroup" aria-label="donut color"></div>
       </div>
@@ -75,6 +75,13 @@
           <div class="sub">mp3 · m4a · wav · ogg</div>
           <input type="file" id="file" accept="audio/*" />
         </label>
+
+        <div class="demos" aria-label="demo tunes">
+          <span class="demos-label">or try</span>
+          <button type="button" class="demo-btn" data-src="static/mp3/Fever.mp3" data-name="Fever">Fever</button>
+          <button type="button" class="demo-btn" data-src="static/mp3/Old Boy.mp3" data-name="Old Boy">Old Boy</button>
+          <button type="button" class="demo-btn" data-src="static/mp3/One more Kiss.mp3" data-name="One more Kiss">One more Kiss</button>
+        </div>
 
         <div class="transport" id="transport" style="display:none;">
           <button class="playbtn" id="play" aria-label="play/pause">
@@ -100,7 +107,7 @@
 
 <footer>
   <span>press space to play/pause</span>
-  <span id="reactTag">reactivity: off</span>
+  <a href="https://theoxiong.com" rel="noopener noreferrer" target="_blank">theoxiong.com</a>
 </footer>
 
 <!-- Tweaks panel -->
@@ -417,23 +424,22 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
     return m + ':' + s;
   }
 
-  function loadFile(f) {
-    if (!f) return;
+  function loadAudioSource(src, name) {
+    if (!src) return;
     if (audio) { audio.pause(); audio.src = ''; }
     audio = new Audio();
-    audio.src = URL.createObjectURL(f);
-    audio.crossOrigin = 'anonymous';
-    trackName.textContent = f.name;
+    audio.src = src;
+    trackName.textContent = name;
     trackName.classList.remove('empty');
 
     // set up Web Audio graph
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const src = audioCtx.createMediaElementSource(audio);
+    const srcNode = audioCtx.createMediaElementSource(audio);
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 1024;
     analyser.smoothingTimeConstant = 0.72;
     dataArr = new Uint8Array(analyser.frequencyBinCount);
-    src.connect(analyser);
+    srcNode.connect(analyser);
     analyser.connect(audioCtx.destination);
 
     audio.addEventListener('loadedmetadata', () => {
@@ -451,7 +457,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
     transport.style.display = 'flex';
     progress.style.display = 'block';
     meters.style.display = 'flex';
-    reactTag.textContent = 'reactivity: on';
+    if (reactTag) reactTag.textContent = 'reactivity: on';
     modeLabel.textContent = 'ascii · torus · reactive';
 
     // autoplay on drop
@@ -487,10 +493,24 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
     audio.currentTime = Math.max(0, Math.min(audio.duration, p * audio.duration));
   });
 
+  function loadFile(f) {
+    if (!f) return;
+    loadAudioSource(URL.createObjectURL(f), f.name);
+  }
+
   // file input
   fileInput.addEventListener('change', (e) => {
     const f = e.target.files && e.target.files[0];
     if (f) loadFile(f);
+  });
+
+  // demo tunes
+  document.querySelectorAll('.demo-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      loadAudioSource(b.dataset.src, b.dataset.name);
+      document.querySelectorAll('.demo-btn').forEach(x =>
+        x.setAttribute('aria-pressed', String(x === b)));
+    });
   });
 
   // drag/drop
@@ -557,12 +577,22 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   const row = document.querySelector('.swatches');
   let currentColorIdx = 0;
 
+  function updateColorBarAria() {
+    const cycling = !!getTweak('colorCycle');
+    row.querySelectorAll('.swatch').forEach(b => {
+      if (b.classList.contains('swatch-cycle')) {
+        b.setAttribute('aria-pressed', cycling ? 'true' : 'false');
+      } else {
+        const on = !cycling && COLORS[currentColorIdx].value === b.dataset.value;
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      }
+    });
+  }
+
   function setColor(hex, idx) {
     document.documentElement.style.setProperty('--donut', hex);
-    row.querySelectorAll('.swatch').forEach(b => {
-      b.setAttribute('aria-pressed', b.dataset.value === hex ? 'true' : 'false');
-    });
     if (idx !== undefined) currentColorIdx = idx;
+    updateColorBarAria();
   }
 
   function cycleColor() {
@@ -618,6 +648,18 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
     row.appendChild(b);
   });
 
+  const cycleSwatch = document.createElement('button');
+  cycleSwatch.className = 'swatch swatch-cycle';
+  cycleSwatch.type = 'button';
+  cycleSwatch.setAttribute('role', 'radio');
+  cycleSwatch.setAttribute('aria-label', 'cycle color with beat');
+  cycleSwatch.setAttribute('aria-pressed', 'false');
+  cycleSwatch.innerHTML = '<span class="fill"></span>';
+  cycleSwatch.addEventListener('click', () => setTweak('colorCycle', 1));
+  row.appendChild(cycleSwatch);
+
+  if (getTweak('colorCycle')) updateColorBarAria();
+
   /* ==============================================================
      TWEAKS PANEL
      ============================================================== */
@@ -651,6 +693,8 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
       if (!v) {
         // restore selected swatch color
         setColor(COLORS[currentColorIdx].value, currentColorIdx);
+      } else {
+        updateColorBarAria();
       }
     } else if (k === 'background') {
       document.body.classList.remove('disco');
