@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>useless-donut</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/useless-donut.css" />
+</head>
+<body>
+
+<div id="flash"></div>
+
+<div id="warn" role="dialog" aria-modal="true" aria-labelledby="warnTitle">
+  <div class="card">
+    <div class="badge">Photosensitivity warning</div>
+    <h2 id="warnTitle">Disco mode strobes.</h2>
+    <p>This mode uses rapid flashing lights, high-contrast color shifts, and screen shake that intensify with the music.</p>
+    <ul>
+      <li>Do not use if you have photosensitive epilepsy or a history of seizures triggered by flashing lights.</li>
+      <li>Stop immediately if you feel dizzy, disoriented, or unwell.</li>
+      <li>View at a comfortable distance in a well-lit room.</li>
+    </ul>
+    <p>You can dial down the intensity in the Tweaks panel after enabling.</p>
+    <div class="actions">
+      <button class="cancel" id="warnCancel">Cancel</button>
+      <button class="proceed" id="warnProceed">I understand, continue</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div class="title"><span class="dot" id="titleDot"></span>useless-donut</div>
+  <div class="modes" role="radiogroup" aria-label="display mode">
+    <button class="mode" data-mode="light" aria-pressed="true">light</button>
+    <button class="mode" data-mode="dark"  aria-pressed="false">dark</button>
+    <button class="mode" data-mode="disco" aria-pressed="false">disco</button>
+  </div>
+  <div class="meta" id="modeLabel">ascii · torus · idle</div>
+</header>
+
+<main>
+  <div class="stage">
+    <div class="donut-wrap">
+      <canvas id="particles" width="900" height="520"></canvas>
+      <pre class="donut" id="donut" aria-label="spinning ascii donut"></pre>
+    </div>
+
+    <div class="panel">
+
+      <!-- color swatches -->
+      <div class="row">
+        <div class="label">color</div>
+        <div class="swatches" role="radiogroup" aria-label="donut color"></div>
+      </div>
+
+      <!-- spin speed -->
+      <div class="row">
+        <div class="label">spin speed</div>
+        <div class="slider-wrap">
+          <span class="ends">slow</span>
+          <input id="speed" type="range" min="0" max="3" step="0.01" value="1" />
+          <span class="ends">fast</span>
+          <span class="slider-val" id="speedVal">1.00×</span>
+        </div>
+      </div>
+
+      <!-- audio -->
+      <div class="row">
+        <div class="label">audio</div>
+        <label class="dropzone" id="drop">
+          <div class="headline">drop an audio file, or click to choose</div>
+          <div class="sub">mp3 · m4a · wav · ogg</div>
+          <input type="file" id="file" accept="audio/*" />
+        </label>
+
+        <div class="transport" id="transport" style="display:none;">
+          <button class="playbtn" id="play" aria-label="play/pause">
+            <svg id="playIcon" viewBox="0 0 12 12"><polygon points="2,1 11,6 2,11" fill="currentColor"/></svg>
+          </button>
+          <div class="trackname empty" id="trackName">no file loaded</div>
+          <div class="time"><span id="tCur">0:00</span> / <span id="tTot">0:00</span></div>
+        </div>
+        <div class="progress" id="progress" style="display:none;">
+          <div class="bar" id="bar"></div>
+        </div>
+
+        <div class="meters" id="meters" style="display:none;">
+          <div class="meter"><div class="fill" id="mBass"></div><div class="tag">bass</div></div>
+          <div class="meter"><div class="fill" id="mMid"></div><div class="tag">mid</div></div>
+          <div class="meter"><div class="fill" id="mHigh"></div><div class="tag">high</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span>press space to play/pause</span>
+  <span id="reactTag">reactivity: off</span>
+</footer>
+
+<!-- Tweaks panel -->
+<div id="tweaks">
+  <h3>Tweaks</h3>
+
+  <div class="tgroup">
+    <div class="tlabel"><span>size</span><span id="tSizeVal">13px</span></div>
+    <input type="range" id="tSize" min="8" max="22" step="1" value="13" />
+  </div>
+
+  <div class="tgroup">
+    <div class="tlabel"><span>bass → scale</span><span id="tBassVal">1.0</span></div>
+    <input type="range" id="tBass" min="0" max="2" step="0.05" value="1" />
+  </div>
+
+  <div class="tgroup">
+    <div class="tlabel"><span>mid → spin</span><span id="tMidVal">1.0</span></div>
+    <input type="range" id="tMid" min="0" max="2" step="0.05" value="1" />
+  </div>
+
+  <div class="tgroup">
+    <div class="tlabel"><span>high → sparkle</span><span id="tHighVal">1.0</span></div>
+    <input type="range" id="tHigh" min="0" max="2" step="0.05" value="1" />
+  </div>
+
+  <div class="tgroup">
+    <div class="tlabel"><span>color cycle w/ beat</span></div>
+    <div class="tog" id="tCycle">
+      <button data-v="0" aria-pressed="true">off</button>
+      <button data-v="1" aria-pressed="false">on</button>
+    </div>
+  </div>
+
+  <div class="tgroup">
+    <div class="tlabel"><span>mode</span></div>
+    <div class="tog" id="tBg">
+      <button data-v="light" aria-pressed="true">light</button>
+      <button data-v="dark"  aria-pressed="false">dark</button>
+      <button data-v="disco" aria-pressed="false">disco</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =======================================================================
+   TWEAK DEFAULTS — the block between the markers is parsed/rewritten by
+   the host when the user drags sliders with edit-mode on.
+   ======================================================================= */
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "fontSize": 14,
+  "bassGain": 1.8,
+  "midGain": 1.1,
+  "highGain": 0.6,
+  "colorCycle": 0,
+  "background": "dark"
+}/*EDITMODE-END*/;
+
+/* =======================================================================
+   ASCII torus renderer
+   ======================================================================= */
+(function(){
+  const el        = document.getElementById('donut');
+  const titleDot  = document.getElementById('titleDot');
+  const speedEl   = document.getElementById('speed');
+  const speedVal  = document.getElementById('speedVal');
+  const modeLabel = document.getElementById('modeLabel');
+  const reactTag  = document.getElementById('reactTag');
+  const mBass     = document.getElementById('mBass');
+  const mMid      = document.getElementById('mMid');
+  const mHigh     = document.getElementById('mHigh');
+
+  // grid — tall enough so rotation never clips
+  const W = 80;
+  const H = 40;
+
+  // luminance ramp
+  const BASE_CHARS = ".,-~:;=!*#$@";
+
+  // rotation state
+  let A = 0, B = 0;
+  let paused = false;
+
+  // reactive state
+  let bassEnv = 0, midEnv = 0, highEnv = 0;   // smoothed envelopes 0..1
+  let beatFlash = 0;                            // decays from 1 on kick
+  let lastBass = 0;
+
+  // buffers
+  const output = new Array(W * H);
+  const zbuf   = new Float32Array(W * H);
+
+  // audio graph (declared early so render loop can read them safely)
+  let audio = null;
+  let audioCtx = null;
+  let analyser = null;
+  let dataArr = null;
+
+  // tweak state (declared early so render() can read it)
+  let tweakState = { ...TWEAK_DEFAULTS };
+  function getTweak(k) { return tweakState[k]; }
+
+  // shared color state
+  let hueOffset = 0;
+
+  // particle system (disco only)
+  const pcanvas = document.getElementById('particles');
+  const pctx = pcanvas.getContext('2d');
+  const PARTICLE_CHARS = ['*','·','+','✦','✧','◦','.','°','•'];
+  const particles = [];
+  const MAX_P = 140;
+  let pw = 900, ph = 520;
+
+  function sizeParticleCanvas() {
+    const rect = document.getElementById('donut').getBoundingClientRect();
+    if (rect.width && rect.height) {
+      pw = Math.max(520, Math.floor(rect.width * 2.2));
+      ph = Math.max(360, Math.floor(rect.height * 1.8));
+      pcanvas.width = pw; pcanvas.height = ph;
+      pcanvas.style.width  = pw + 'px';
+      pcanvas.style.height = ph + 'px';
+      pcanvas.style.top = (-((ph - rect.height) / 2)) + 'px';
+    }
+  }
+  setTimeout(sizeParticleCanvas, 0);
+  window.addEventListener('resize', sizeParticleCanvas);
+
+  function spawnParticle(energy) {
+    const cx = pw / 2, cy = ph / 2;
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 0.4 + Math.random() * 1.6 + energy * 4;
+    particles.push({
+      x: cx + (Math.random() - 0.5) * 60,
+      y: cy + (Math.random() - 0.5) * 30,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed * 0.7,
+      life: 1,
+      decay: 0.004 + Math.random() * 0.012,
+      ch: PARTICLE_CHARS[(Math.random() * PARTICLE_CHARS.length) | 0],
+      size: 10 + Math.random() * 12,
+      hue: (hueOffset + (Math.random() - 0.5) * 60 + 360) % 360,
+    });
+  }
+
+  function stepParticles() {
+    if (getTweak('background') !== 'disco') {
+      if (particles.length) { particles.length = 0; pctx.clearRect(0, 0, pw, ph); }
+      return;
+    }
+    const energy = Math.max(bassEnv, midEnv * 0.6, 0.08);
+    const spawnCount = Math.min(5, Math.floor(energy * 7 + Math.random()));
+    for (let i = 0; i < spawnCount && particles.length < MAX_P; i++) spawnParticle(energy);
+    if (beatFlash > 0.6) {
+      for (let i = 0; i < 18 && particles.length < MAX_P; i++) spawnParticle(1);
+    }
+
+    pctx.clearRect(0, 0, pw, ph);
+    pctx.textAlign = 'center';
+    pctx.textBaseline = 'middle';
+
+    const push = bassEnv * 0.5;
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      const dx = p.x - pw / 2, dy = p.y - ph / 2;
+      const d = Math.hypot(dx, dy) || 1;
+      p.vx += (dx / d) * push;
+      p.vy += (dy / d) * push * 0.6;
+      p.vx *= 0.985; p.vy *= 0.985;
+      p.vy -= 0.02;
+      p.x += p.vx; p.y += p.vy;
+      p.life -= p.decay;
+
+      if (p.life <= 0 || p.x < -20 || p.x > pw + 20 || p.y < -20 || p.y > ph + 20) {
+        particles.splice(i, 1);
+        continue;
+      }
+
+      pctx.globalAlpha = Math.min(1, p.life) * (0.55 + beatFlash * 0.35);
+      const col = `hsl(${p.hue} 95% 65%)`;
+      pctx.fillStyle = col;
+      pctx.shadowColor = col;
+      pctx.shadowBlur = 8 + beatFlash * 14;
+      pctx.font = `500 ${p.size}px "JetBrains Mono", ui-monospace, monospace`;
+      pctx.fillText(p.ch, p.x, p.y);
+    }
+    pctx.globalAlpha = 1;
+    pctx.shadowBlur = 0;
+  }
+
+  /* ------- speed slider ------- */
+  let speedMul = 1;
+  speedEl.addEventListener('input', () => {
+    speedMul = parseFloat(speedEl.value);
+    speedVal.textContent = speedMul.toFixed(2) + '×';
+  });
+
+  function render() {
+    // reactive parameters
+    const bassGain = getTweak('bassGain');
+    const midGain  = getTweak('midGain');
+    const highGain = getTweak('highGain');
+
+    const scaleK = 28 + bassEnv * 10 * bassGain;    // K1 pulses on bass
+    const spinBoost = 1 + midEnv * 1.5 * midGain;   // mid adds spin
+    const sparkle = highEnv * highGain;             // shifts char ramp
+
+    // character ramp brightens with highs
+    const ramp = BASE_CHARS;
+    const rampBias = sparkle * 2; // 0..~2
+
+    // clear
+    for (let i = 0; i < W * H; i++) { output[i] = ' '; zbuf[i] = 0; }
+
+    const cosA = Math.cos(A), sinA = Math.sin(A);
+    const cosB = Math.cos(B), sinB = Math.sin(B);
+
+    const thetaStep = 0.07;
+    const phiStep   = 0.02;
+
+    const K1 = scaleK;
+
+    for (let theta = 0; theta < 2 * Math.PI; theta += thetaStep) {
+      const cosT = Math.cos(theta), sinT = Math.sin(theta);
+      for (let phi = 0; phi < 2 * Math.PI; phi += phiStep) {
+        const cosP = Math.cos(phi), sinP = Math.sin(phi);
+
+        const circleX = 2 + cosT;
+        const circleY = sinT;
+
+        const x = circleX * (cosB * cosP + sinA * sinB * sinP) - circleY * cosA * sinB;
+        const y = circleX * (sinB * cosP - sinA * cosB * sinP) + circleY * cosA * cosB;
+        const z = 5 + cosA * circleX * sinP + circleY * sinA;
+        const ooz = 1 / z;
+
+        const xp = (W / 2 + K1 * ooz * x) | 0;
+        const yp = (H / 2 - (K1 * ooz * y) * 0.5) | 0;
+
+        const L = cosP * cosT * sinB
+                - cosA * cosT * sinP
+                - sinA * sinT
+                + cosB * (cosA * sinT - cosT * sinA * sinP);
+
+        if (yp >= 0 && yp < H && xp >= 0 && xp < W) {
+          const idx = xp + W * yp;
+          if (ooz > zbuf[idx]) {
+            zbuf[idx] = ooz;
+            const lum = L > 0 ? L : 0;
+            // brighter chars when sparkle is high
+            const ci = Math.min(ramp.length - 1, Math.max(0, Math.floor(lum * 8 + rampBias)));
+            output[idx] = ramp[ci];
+          }
+        }
+      }
+    }
+
+    let s = '';
+    for (let j = 0; j < H; j++) {
+      s += output.slice(j * W, j * W + W).join('') + '\n';
+    }
+    el.textContent = s;
+
+    // advance rotation
+    A += 0.04 * speedMul * spinBoost;
+    B += 0.02 * speedMul * spinBoost;
+
+    // decay envelopes if not being fed (idle / paused audio)
+    if (!audio || audio.paused) {
+      bassEnv *= 0.9; midEnv *= 0.9; highEnv *= 0.9;
+    }
+    beatFlash *= 0.88;
+  }
+
+  function loop() {
+    if (!paused) {
+      if (analyser) stepAnalysis();
+      render();
+      updateMeters();
+      stepParticles();
+      if (getTweak('background') === 'disco') { discoTick(); discoEffects(); }
+      else if (getTweak('colorCycle')) cycleColor();
+    }
+    requestAnimationFrame(loop);
+  }
+  loop();
+
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
+      e.preventDefault();
+      if (audio && audio.src) togglePlay();
+      else paused = !paused;
+    }
+  });
+
+  /* ==============================================================
+     Audio (file-upload reactive)
+     ============================================================== */
+  const fileInput  = document.getElementById('file');
+  const drop       = document.getElementById('drop');
+  const transport  = document.getElementById('transport');
+  const progress   = document.getElementById('progress');
+  const bar        = document.getElementById('bar');
+  const playBtn    = document.getElementById('play');
+  const playIcon   = document.getElementById('playIcon');
+  const trackName  = document.getElementById('trackName');
+  const tCur       = document.getElementById('tCur');
+  const tTot       = document.getElementById('tTot');
+  const meters     = document.getElementById('meters');
+
+  function fmt(t) {
+    if (!isFinite(t)) return '0:00';
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60).toString().padStart(2, '0');
+    return m + ':' + s;
+  }
+
+  function loadFile(f) {
+    if (!f) return;
+    if (audio) { audio.pause(); audio.src = ''; }
+    audio = new Audio();
+    audio.src = URL.createObjectURL(f);
+    audio.crossOrigin = 'anonymous';
+    trackName.textContent = f.name;
+    trackName.classList.remove('empty');
+
+    // set up Web Audio graph
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = audioCtx.createMediaElementSource(audio);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 1024;
+    analyser.smoothingTimeConstant = 0.72;
+    dataArr = new Uint8Array(analyser.frequencyBinCount);
+    src.connect(analyser);
+    analyser.connect(audioCtx.destination);
+
+    audio.addEventListener('loadedmetadata', () => {
+      tTot.textContent = fmt(audio.duration);
+    });
+    audio.addEventListener('timeupdate', () => {
+      tCur.textContent = fmt(audio.currentTime);
+      const p = audio.duration ? (audio.currentTime / audio.duration) : 0;
+      bar.style.width = (p * 100) + '%';
+    });
+    audio.addEventListener('ended', () => {
+      setPlayIcon(false);
+    });
+
+    transport.style.display = 'flex';
+    progress.style.display = 'block';
+    meters.style.display = 'flex';
+    reactTag.textContent = 'reactivity: on';
+    modeLabel.textContent = 'ascii · torus · reactive';
+
+    // autoplay on drop
+    audioCtx.resume().then(() => {
+      audio.play().then(() => setPlayIcon(true)).catch(()=>{});
+    });
+  }
+
+  function togglePlay() {
+    if (!audio) return;
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    if (audio.paused) { audio.play(); setPlayIcon(true); }
+    else { audio.pause(); setPlayIcon(false); }
+  }
+
+  function setPlayIcon(playing) {
+    if (playing) {
+      playIcon.innerHTML =
+        '<rect x="3" y="2" width="2" height="8" fill="currentColor"/>' +
+        '<rect x="7" y="2" width="2" height="8" fill="currentColor"/>';
+    } else {
+      playIcon.innerHTML = '<polygon points="2,1 11,6 2,11" fill="currentColor"/>';
+    }
+  }
+
+  playBtn.addEventListener('click', togglePlay);
+
+  // scrub on progress click
+  document.getElementById('progress').addEventListener('click', (e) => {
+    if (!audio || !audio.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const p = (e.clientX - rect.left) / rect.width;
+    audio.currentTime = Math.max(0, Math.min(audio.duration, p * audio.duration));
+  });
+
+  // file input
+  fileInput.addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) loadFile(f);
+  });
+
+  // drag/drop
+  ['dragenter','dragover'].forEach(ev =>
+    drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('drag'); })
+  );
+  ['dragleave','drop'].forEach(ev =>
+    drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('drag'); })
+  );
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f && f.type.startsWith('audio/')) loadFile(f);
+  });
+
+  /* ------- FFT → bass/mid/high envelopes ------- */
+  function stepAnalysis() {
+    analyser.getByteFrequencyData(dataArr);
+    const n = dataArr.length;
+    // bins: bass 0-6%, mid 6-30%, high 30-100%
+    const bassEnd = Math.floor(n * 0.06);
+    const midEnd  = Math.floor(n * 0.30);
+
+    let b = 0, m = 0, h = 0;
+    for (let i = 0; i < bassEnd; i++) b += dataArr[i];
+    for (let i = bassEnd; i < midEnd; i++) m += dataArr[i];
+    for (let i = midEnd; i < n; i++) h += dataArr[i];
+    b /= (bassEnd || 1);
+    m /= ((midEnd - bassEnd) || 1);
+    h /= ((n - midEnd) || 1);
+
+    // normalize 0..1
+    const B = b / 255, M = m / 255, H = h / 255;
+
+    // attack-release smoothing
+    bassEnv = Math.max(B, bassEnv * 0.80);
+    midEnv  = Math.max(M, midEnv  * 0.82);
+    highEnv = Math.max(H, highEnv * 0.75);
+
+    // naive beat detection: big jump in bass → flash
+    if (B - lastBass > 0.18 && B > 0.55) beatFlash = 1;
+    lastBass = B;
+  }
+
+  function updateMeters() {
+    mBass.style.height = Math.round(bassEnv * 100) + '%';
+    mMid.style.height  = Math.round(midEnv  * 100) + '%';
+    mHigh.style.height = Math.round(highEnv * 100) + '%';
+  }
+
+  /* ==============================================================
+     Color
+     ============================================================== */
+  const COLORS = [
+    { name: 'gold',     value: '#d4a017' },
+    { name: 'amber',    value: '#b8860b' },
+    { name: 'copper',   value: '#b5651d' },
+    { name: 'ink',      value: '#111111' },
+    { name: 'crimson',  value: '#b00020' },
+    { name: 'forest',   value: '#2e6e4f' },
+    { name: 'cobalt',   value: '#2a4bd7' },
+    { name: 'violet',   value: '#6a3ea1' },
+  ];
+  const row = document.querySelector('.swatches');
+  let currentColorIdx = 0;
+
+  function setColor(hex, idx) {
+    document.documentElement.style.setProperty('--donut', hex);
+    row.querySelectorAll('.swatch').forEach(b => {
+      b.setAttribute('aria-pressed', b.dataset.value === hex ? 'true' : 'false');
+    });
+    if (idx !== undefined) currentColorIdx = idx;
+  }
+
+  function cycleColor() {
+    // On beat flash, shift hue smoothly
+    hueOffset = (hueOffset + beatFlash * 6 + 0.3) % 360;
+    const c = `hsl(${(45 + hueOffset) % 360} 75% 45%)`;
+    document.documentElement.style.setProperty('--donut', c);
+  }
+
+  function discoTick() {
+    hueOffset = (hueOffset + 2.4 + beatFlash * 14) % 360;
+    const c = `hsl(${hueOffset} 100% ${62 + beatFlash * 18}%)`;
+    document.documentElement.style.setProperty('--donut', c);
+  }
+
+  // disco strobe + shake
+  const flashEl = document.getElementById('flash');
+  const mainEl = document.querySelector('main');
+  let shakeT = 0;
+  function discoEffects() {
+    if (beatFlash > 0.55) {
+      flashEl.style.background = `hsl(${(hueOffset + 180) % 360} 100% 75%)`;
+      flashEl.style.opacity = String(Math.min(0.55, beatFlash * 0.7));
+    } else if (highEnv > 0.55 && Math.random() < 0.25) {
+      flashEl.style.background = `hsl(${(hueOffset + 90) % 360} 100% 80%)`;
+      flashEl.style.opacity = String(Math.min(0.35, highEnv * 0.5));
+    } else {
+      flashEl.style.opacity = '0';
+    }
+    shakeT = Math.max(shakeT * 0.85, bassEnv);
+    const amp = shakeT * 18;
+    if (amp > 0.2) {
+      mainEl.style.transform = `translate(${((Math.random()-0.5)*amp).toFixed(1)}px, ${((Math.random()-0.5)*amp).toFixed(1)}px)`;
+    } else {
+      mainEl.style.transform = '';
+    }
+  }
+
+  COLORS.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.className = 'swatch'; b.type = 'button';
+    b.dataset.value = c.value;
+    b.style.setProperty('--c', c.value);
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-label', c.name);
+    b.setAttribute('aria-pressed', i === 0 ? 'true' : 'false');
+    b.innerHTML = '<span class="fill"></span>';
+    b.addEventListener('click', () => {
+      // clicking a swatch disables color-cycle so the pick sticks
+      if (getTweak('colorCycle')) setTweak('colorCycle', 0);
+      setColor(c.value, i);
+    });
+    row.appendChild(b);
+  });
+
+  /* ==============================================================
+     TWEAKS PANEL
+     ============================================================== */
+  const tweaksEl = document.getElementById('tweaks');
+
+  function setTweak(k, v) {
+    tweakState[k] = v;
+    applyTweak(k, v);
+    try {
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [k]: v } }, '*');
+    } catch(e){}
+  }
+
+  function applyTweak(k, v) {
+    if (k === 'fontSize') {
+      el.style.fontSize = v + 'px';
+      document.getElementById('tSize').value = v;
+      document.getElementById('tSizeVal').textContent = v + 'px';
+    } else if (k === 'bassGain') {
+      document.getElementById('tBass').value = v;
+      document.getElementById('tBassVal').textContent = (+v).toFixed(2);
+    } else if (k === 'midGain') {
+      document.getElementById('tMid').value = v;
+      document.getElementById('tMidVal').textContent = (+v).toFixed(2);
+    } else if (k === 'highGain') {
+      document.getElementById('tHigh').value = v;
+      document.getElementById('tHighVal').textContent = (+v).toFixed(2);
+    } else if (k === 'colorCycle') {
+      document.querySelectorAll('#tCycle button').forEach(b =>
+        b.setAttribute('aria-pressed', String(+b.dataset.v === +v)));
+      if (!v) {
+        // restore selected swatch color
+        setColor(COLORS[currentColorIdx].value, currentColorIdx);
+      }
+    } else if (k === 'background') {
+      document.body.classList.remove('disco');
+      const mEl = document.querySelector('main');
+      const fEl = document.getElementById('flash');
+      if (mEl) mEl.style.transform = '';
+      if (fEl) fEl.style.opacity = '0';
+      if (v === 'dark') {
+        document.documentElement.style.setProperty('--bg', '#0a0a0a');
+        document.documentElement.style.setProperty('--ink', '#f5f5f5');
+        document.documentElement.style.setProperty('--muted', '#777');
+        document.documentElement.style.setProperty('--hair', '#222');
+      } else if (v === 'disco') {
+        // disco: dark base + rainbow donut + glow
+        document.documentElement.style.setProperty('--bg', '#050010');
+        document.documentElement.style.setProperty('--ink', '#ffffff');
+        document.documentElement.style.setProperty('--muted', 'rgba(255,255,255,0.55)');
+        document.documentElement.style.setProperty('--hair', 'rgba(255,255,255,0.12)');
+        document.body.classList.add('disco');
+      } else {
+        document.documentElement.style.setProperty('--bg', '#ffffff');
+        document.documentElement.style.setProperty('--ink', '#111111');
+        document.documentElement.style.setProperty('--muted', '#8a8a8a');
+        document.documentElement.style.setProperty('--hair', '#ececec');
+      }
+      document.querySelectorAll('#tBg button').forEach(b =>
+        b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+      document.querySelectorAll('.modes .mode').forEach(b =>
+        b.setAttribute('aria-pressed', String(b.dataset.mode === v)));
+      // if leaving disco, restore selected swatch; disco overrides color in loop
+      if (v !== 'disco') setColor(COLORS[currentColorIdx].value, currentColorIdx);
+    }
+  }
+
+  // init apply — if saved mode is disco but user hasn't acked, downgrade to dark + prompt
+  if (tweakState.background === 'disco' && localStorage.getItem('donut-disco-ack') !== '1') {
+    tweakState.background = 'dark';
+    Object.keys(tweakState).forEach(k => applyTweak(k, tweakState[k]));
+    // offer the warning after first paint so user sees the page
+    setTimeout(() => { pendingDiscoActivate = true; warn.classList.add('on'); }, 400);
+  } else {
+    Object.keys(tweakState).forEach(k => applyTweak(k, tweakState[k]));
+  }
+
+  // wire sliders
+  document.getElementById('tSize').addEventListener('input', e => setTweak('fontSize', +e.target.value));
+  document.getElementById('tBass').addEventListener('input', e => setTweak('bassGain', +e.target.value));
+  document.getElementById('tMid' ).addEventListener('input', e => setTweak('midGain',  +e.target.value));
+  document.getElementById('tHigh').addEventListener('input', e => setTweak('highGain', +e.target.value));
+  document.querySelectorAll('#tCycle button').forEach(b =>
+    b.addEventListener('click', () => setTweak('colorCycle', +b.dataset.v)));
+  document.querySelectorAll('#tBg button').forEach(b =>
+    b.addEventListener('click', () => {
+      if (b.dataset.v === 'disco' && getTweak('background') !== 'disco') requestDisco();
+      else setTweakDirect('background', b.dataset.v);
+    }));
+  document.querySelectorAll('.modes .mode').forEach(b =>
+    b.addEventListener('click', () => {
+      if (b.dataset.mode === 'disco' && getTweak('background') !== 'disco') requestDisco();
+      else setTweakDirect('background', b.dataset.mode);
+    }));
+
+  // disco gate
+  const DISCO_ACK_KEY = 'donut-disco-ack';
+  const warn = document.getElementById('warn');
+  let pendingDiscoActivate = false;
+
+  function setTweakDirect(k, v) {
+    tweakState[k] = v;
+    applyTweak(k, v);
+    try { window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [k]: v } }, '*'); } catch(e){}
+  }
+
+  function requestDisco() {
+    if (localStorage.getItem(DISCO_ACK_KEY) === '1') {
+      setTweakDirect('background', 'disco');
+    } else {
+      pendingDiscoActivate = true;
+      warn.classList.add('on');
+    }
+  }
+  document.getElementById('warnCancel').addEventListener('click', () => {
+    warn.classList.remove('on');
+    pendingDiscoActivate = false;
+    const cur = getTweak('background');
+    document.querySelectorAll('.modes .mode').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.mode === cur)));
+    document.querySelectorAll('#tBg button').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.v === cur)));
+  });
+  document.getElementById('warnProceed').addEventListener('click', () => {
+    localStorage.setItem(DISCO_ACK_KEY, '1');
+    warn.classList.remove('on');
+    if (pendingDiscoActivate) {
+      pendingDiscoActivate = false;
+      setTweakDirect('background', 'disco');
+    }
+  });
+
+  // edit-mode protocol
+  window.addEventListener('message', (e) => {
+    const d = e.data || {};
+    if (d.type === '__activate_edit_mode')   tweaksEl.classList.add('on');
+    if (d.type === '__deactivate_edit_mode') tweaksEl.classList.remove('on');
+  });
+  try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch(e){}
+
+})();
+</script>
+</body>
+</html>
