@@ -26,13 +26,21 @@ header {
 header .title {
   font-weight: 700; font-size: 15px;
 }
-header .title .dot {
-  display: inline-block;
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--donut);
-  transform: translateY(-2px);
-  margin-right: 10px;
-  transition: background-color .35s ease;
+header .title .title-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  color: var(--donut);
+  transform: translateY(3px);
+  transition: color .35s ease;
+}
+header .title .title-icon svg {
+  display: block;
+  width: 18px;
+  height: 18px;
 }
 header .meta {
   color: var(--muted); font-size: 12px;

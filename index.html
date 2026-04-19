@@ -2,8 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>useless-donut</title>
+<title>donut</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="description" content="Spinning ASCII torus, audio-reactive particles, and a useless knob — useless-donut in your browser." />
+<link rel="canonical" href="https://theoxiong7.github.io/useless-donut/" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="useless-donut" />
+<meta property="og:description" content="Spinning ASCII torus, audio-reactive particles, and a useless knob — useless-donut in your browser." />
+<meta property="og:url" content="https://theoxiong7.github.io/useless-donut/" />
+<meta property="og:image" content="https://theoxiong7.github.io/useless-donut/static/donut.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="ASCII donut torus on black" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="useless-donut" />
+<meta name="twitter:description" content="Spinning ASCII torus, audio-reactive particles, and a useless knob — useless-donut in your browser." />
+<meta name="twitter:image" content="https://theoxiong7.github.io/useless-donut/static/donut.png" />
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -32,7 +47,7 @@
 </div>
 
 <header>
-  <div class="title"><span class="dot" id="titleDot"></span>useless-donut</div>
+  <div class="title"><span class="title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M12 1.5a10.5 10.5 0 1 1 0 21 10.5 10.5 0 0 1 0-21Zm0 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Z"/></svg></span>useless-donut</div>
   <div class="modes" role="radiogroup" aria-label="display mode">
     <button class="mode" data-mode="light" aria-pressed="true">light</button>
     <button class="mode" data-mode="dark"  aria-pressed="false">dark</button>
@@ -171,7 +186,6 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
    ======================================================================= */
 (function(){
   const el        = document.getElementById('donut');
-  const titleDot  = document.getElementById('titleDot');
   const speedEl   = document.getElementById('speed');
   const speedVal  = document.getElementById('speedVal');
   const modeLabel = document.getElementById('modeLabel');
